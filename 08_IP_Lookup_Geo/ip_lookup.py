@@ -1,55 +1,54 @@
 import requests
-import sys
+import json
+import socket
 
-def lookup_ip(ip_address=""):
-    print(f"\n--- 🛡️ IP LOOKUP TOOL (HTTPS) ---")
+def get_ip_location(target_ip=""):
+    print(f"\n--- 🌍 IP GEOLOCATION TRACKER (ip-api.com) ---")
+    print(f"[*] Célpont vizsgálata: {target_ip if target_ip else 'Saját Hálózat'}")
     
-    # Ha nincs megadva IP, a sajátunkat kérdezzük le
-    target = ip_address if ip_address else "json"
-    
-    # 1. A legstabilabb ingyenes HTTPS API
-    url = f"https://ipapi.co/{target}/json/"
-    
-    # 2. Fejléc beállítása (Böngészőnek álcázzuk magunkat)
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-
     try:
-        print(f"Kapcsolódás a szerverhez ({url})...")
-        response = requests.get(url, headers=headers, timeout=10)
+        # Az ip-api.com nagyon rugalmas. 
+        # Ha a végére nem írunk semmit (üres string), a saját adatainkat adja vissza.
+        url = f"http://ip-api.com/json/{target_ip}"
         
-        # SIKERES VÁLASZ (200 OK)
-        if response.status_code == 200:
-            data = response.json()
-            
-            # Ellenőrizzük, hogy nem hibaüzenetet kaptunk-e JSON-ben
-            if "error" in data:
-                 print(f"❌ API Hiba: {data.get('reason')}")
-            else:
-                print("\n✅ TALÁLAT:")
-                print(f"📍 IP Cím:      {data.get('ip')}")
-                print(f"🌍 Ország:      {data.get('country_name')}")
-                print(f"🏙️ Város:       {data.get('city')}")
-                print(f"🏢 Szolgáltató: {data.get('org')}")
-                print(f"🗺️ Koordináták: {data.get('latitude')}, {data.get('longitude')}")
+        response = requests.get(url)
+        data = json.loads(response.text)
+        
+        if data['status'] == 'fail':
+            print("❌ HIBA: Nem sikerült lekérni az adatokat.")
+            print(f"Ok: {data.get('message', 'Ismeretlen')}")
+            return
 
-        # TILTOTT VÁLASZ (403 Forbidden) - Túl sok kérés
-        elif response.status_code == 403:
-            print("❌ HIBA 403: A szerver átmenetileg letiltotta a kérést (Rate Limit).")
-            print("💡 Tipp: Próbáld meg később, vagy használj VPN-t/Mobilnetet.")
-            
-        else:
-            print(f"❌ Szerver hiba: {response.status_code}")
-
-    except requests.exceptions.ConnectionError:
-        print("❌ HÁLÓZATI HIBA: Nincs internet, vagy a tűzfal blokkolja a Python-t.")
-    except requests.exceptions.Timeout:
-        print("❌ IDŐTÚLLÉPÉS: A szerver nem válaszolt 10 másodpercen belül.")
+        # Eredmények kiírása
+        print("\n✅ SIKERES TALÁLAT!")
+        print(f"----------------------------------------")
+        print(f"📍 IP Cím:     {data.get('query')}")
+        print(f"🏳️  Ország:    {data.get('country')} ({data.get('countryCode')})")
+        print(f"🏙️  Város:     {data.get('city')}")
+        print(f"📮 Ir.szám:    {data.get('zip')}")
+        print(f"🏢 Szolgáltató: {data.get('isp')}")
+        print(f"🗺️  Koordináták: {data.get('lat')}, {data.get('lon')}")
+        print(f"----------------------------------------")
+        
+        # Google Maps Link
+        print(f"🔗 Térkép: http://maps.google.com/?q={data.get('lat')},{data.get('lon')}")
+        
     except Exception as e:
-        print(f"❌ Váratlan hiba: {e}")
+        print(f"\n❌ Hálózati hiba: {e}")
 
 if __name__ == "__main__":
-    target = input("Adj meg egy IP címet (vagy Enter a sajátodhoz): ").strip()
-    lookup_ip(target)
-    input("\nNyomj Enter-t a kilépéshez...")
+    user_input = input("Adj meg egy IP címet vagy Weboldalt (Enter = Saját IP): ").strip()
+    
+    # Ha a felhasználó weboldalt írt be (pl. google.com), először IP-re fordítjuk
+    if user_input and not user_input[0].isdigit():
+        try:
+            resolved_ip = socket.gethostbyname(user_input)
+            print(f"[*] DNS Feloldás: {user_input} -> {resolved_ip}")
+            get_ip_location(resolved_ip)
+        except:
+            print("❌ Érvénytelen weboldal cím!")
+    else:
+        # Ha IP címet írt, vagy üresen hagyta
+        get_ip_location(user_input)
+        
+    input("\nNyomj Entert a kilépéshez...")
