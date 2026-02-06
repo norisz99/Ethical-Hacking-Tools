@@ -1,4 +1,4 @@
-# Ethical-Hacking-Tools
+# Cybersecurity & Python Portfolio - Level 1
 A collection of Python scripts demonstrating cybersecurity concepts (Network Scanning, Cryptography, 2FA, Malware Analysis).
 # 🛡️ Cybersecurity & Python Portfolio
 
